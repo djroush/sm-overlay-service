@@ -4,6 +4,7 @@ import path from 'path'
 import sharp from 'sharp'
 import { PlayersState } from '../../../src/models/PlayersState';
 import { OptionsState } from '../../../src/models/OptionsState';
+import NextCors from 'nextjs-cors';
 
 type OverlayErrorResponse = {
   errors: string[]
@@ -33,6 +34,13 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<OverlayErrorResponse | any>,
 ) {
+
+  //Apply CORS headers to the resposne
+  await NextCors(req, res, {
+    methods: ['GET'],
+    origin: '*',
+    optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
+  });
 
   if (req.method === 'GET') {
     const {
@@ -186,7 +194,7 @@ const generateSettings = (settings: OverlaySettings) => {
 
   let svgText = '<svg width="220" height="255">\n'
   settingsText.forEach((setting, index) => {
-    const height = 25*(index+1)
+    const height = 25 * (index + 1)
     svgText += `\t<text x="0%" font-family="roboto,sans-serif" font-weight="400" font-size="16px" stroke="black" stroke-width="2" dy="${height}">${setting}</text>\n`
     svgText += `\t<text x="0%" font-family="roboto,sans-serif" font-weight="400" font-size="16px" fill="#FDF3FB" dy="${height}">${setting}</text>\n`
   })
