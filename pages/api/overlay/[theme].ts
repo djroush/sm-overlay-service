@@ -22,12 +22,8 @@ type OverlaySettings = {
 }
 
 const getServerAssetPath = () => {
-  const assetPathFolders = process.env.env !== 'prod' ?
-    ['..', '..', '..', '..', '..', 'public'] :
-    ['..', '..', '..', '..'];
-  const serverAssetPath = path.join(__dirname, ...assetPathFolders)
-
-  return serverAssetPath
+  const imagesDir = path.join(process.cwd(), 'public');
+  return imagesDir
 }
 
 export default async function handler(
@@ -48,6 +44,7 @@ export default async function handler(
       player1, player2,                                                         //players
       hidePlayers, hideLogo, hideSettings, hideTracker, hideAvatar, hideWins    //options
     } = req.query ?? {}
+
     const settings = {
       theme: upper(theme),
       mode: upper(mode),
@@ -89,7 +86,7 @@ async function generateOverlay(settings: OverlaySettings, players: PlayersState,
   const { player1, player2 } = players
 
   const serverAssetPath = getServerAssetPath();
-  const themeLayer = sharp(serverAssetPath + `/overlays/${theme.toLowerCase()}.png`)
+  const themeLayer = sharp(`${serverAssetPath}/overlays/${theme.toLowerCase()}.png`)
 
   const backgroundLayer = await extractLayer(themeLayer, 0, 0, 1280, 720);
   const streamLayer = await extractLayer(themeLayer, 0, 720, 511, 390).toBuffer();
@@ -137,7 +134,7 @@ async function generateOverlay(settings: OverlaySettings, players: PlayersState,
     ])
   }
   if (!hideLogo) {
-    const logoLayer = await sharp(serverAssetPath + '/logos/default.png').toBuffer()
+    const logoLayer = await sharp(`${serverAssetPath}/logos/default.png`).toBuffer()
 
     overlayLayers = overlayLayers.concat([
       { input: logoLayer, left: 550, top: 80 }
