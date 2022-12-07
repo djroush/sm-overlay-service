@@ -22,8 +22,7 @@ type OverlaySettings = {
 }
 
 const getServerAssetPath = () => {
-  const imagesDir = path.join(process.cwd(), 'public');
-  return imagesDir
+  return path.join(process.cwd(), 'public');
 }
 
 export default async function handler(
@@ -70,15 +69,22 @@ export default async function handler(
 
     const errors = validate(settings, players, options)
     if (errors.length > 0) {
-      res.status(400).json({ errors })
+      res
+        .status(400)
+        .json({ errors })
     } else {
       const overlay = await generateOverlay(settings, players, options)
-      res.status(200).send(overlay)
+      res
+        .setHeader('Content-Disposition', 'attachment; filename="sm-overlay.png"')
+        .status(200)
+        .send(overlay)
     }
   } else {
-    res.setHeader('Allow', 'GET').status(405).json({ errors: ['Expected to receive a GET request'] });
-  }
-}
+    res
+      .setHeader('Allow', 'GET')
+      .status(405)
+      .json({ errors: ['Expected to receive a GET request'] });
+  }}
 
 async function generateOverlay(settings: OverlaySettings, players: PlayersState, options: OptionsState): Promise<Buffer> {
   const { theme } = settings
