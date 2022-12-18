@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { areaValues, bossesValues, difficultyValues, escapeValues, modeValues, morphValues, startValues, themeValues } from '../../../src/models/SliderValues';
+import { areaValues, bossesValues, difficultyValues, escapeValues, logoValues, modeValues, morphValues, startValues, themeValues } from '../../../src/models/SliderValues';
 import path from 'path'
 import sharp from 'sharp'
 import { PlayersState } from '../../../src/models/PlayersState';
@@ -12,6 +12,7 @@ type OverlayErrorResponse = {
 
 type OverlaySettings = {
   theme: string,
+  logo: string,
   mode: string,
   area: string,
   difficulty: string,
@@ -39,13 +40,14 @@ export default async function handler(
 
   if (req.method === 'GET') {
     const {
-      theme, mode, area, difficulty, start, morph, bosses, escape,              //settings
+      theme, logo, mode, area, difficulty, start, morph, bosses, escape,        //settings
       player1, player2,                                                         //players
       hidePlayers, hideLogo, hideSettings, hideTracker, hideAvatar, hideWins    //options
     } = req.query ?? {}
 
     const settings = {
       theme: upper(theme),
+      logo: upper(logo),
       mode: upper(mode),
       area: upper(area),
       difficulty: upper(difficulty),
@@ -87,7 +89,7 @@ export default async function handler(
   }}
 
 async function generateOverlay(settings: OverlaySettings, players: PlayersState, options: OptionsState): Promise<Buffer> {
-  const { theme } = settings
+  const { theme, logo } = settings
   const { hidePlayers, hideLogo, hideSettings, hideTracker, hideAvatar, hideWins } = options
   const { player1, player2 } = players
 
@@ -140,10 +142,10 @@ async function generateOverlay(settings: OverlaySettings, players: PlayersState,
     ])
   }
   if (!hideLogo) {
-    const logoLayer = await sharp(`${serverAssetPath}/logos/default.png`).toBuffer()
+    const logoLayer = await sharp(`${serverAssetPath}/logos/${logo.toLowerCase()}.png`).toBuffer()
 
     overlayLayers = overlayLayers.concat([
-      { input: logoLayer, left: 550, top: 80 }
+      { input: logoLayer, left: 530, top: 80 }
     ])
   }
   if (!hideSettings) {
@@ -206,37 +208,45 @@ const generateSettings = (settings: OverlaySettings) => {
 }
 
 function validate(settings: OverlaySettings, players: PlayersState, options: OptionsState): string[] {
-  const { theme, mode, area, difficulty, start, morph, bosses, escape } = settings
+  const { theme, logo, mode, area, difficulty, start, morph, bosses, escape } = settings
   const { player1, player2 } = players
-  const { hidePlayers } = options
+  const { hideLogo, hidePlayers, hideSettings } = options
 
   const errors: string[] = []
 
   if (theme === undefined || !themeValues.includes(upper(theme))) {
     errors.push('theme is required, valid values are (' + themeValues.join(',') + ')');
   };
-  if (mode === undefined || !modeValues.includes(upper(mode))) {
-    const updatedModeValues = modeValues.map(a => a.replace(' ', '_'))
-    errors.push('mode is required, valid values are (' + updatedModeValues.join(',') + ')');
+  if (!hideLogo) {
+    if (logo !== undefined && !logoValues.includes(upper(logo))) {
+      errors.push('logo is required unless hideLogo=true, valid values are (' + logoValues.join(',') + ')');
+    }
   }
-  if (!('area' in settings) || !areaValues.includes(upper(area))) {
-    errors.push('area is required, valid values are (' + areaValues.join(',') + ')');
+  if (!hideSettings) {
+    if (mode === undefined || !modeValues.includes(upper(mode))) {
+      const updatedModeValues = modeValues.map(a => a.replace(' ', '_'))
+      errors.push('mode is required unless hideSettings=true, valid values are (' + updatedModeValues.join(',') + ')');
+    }
+    if (!('area' in settings) || !areaValues.includes(upper(area))) {
+      errors.push('area is required unless hideSettings=true, valid values are (' + areaValues.join(',') + ')');
+    }
+    if (!('difficulty' in settings) || !difficultyValues.includes(upper(difficulty))) {
+      errors.push('difficulty is required unless hideSettings=true, valid values are (' + difficultyValues.join(',') + ')');
+    }
+    if (!('start' in settings) || !startValues.includes(upper(start))) {
+      errors.push('start is required unless hideSettings=true, valid values are (' + startValues.join(',') + ')');
+    }
+    if (!('morph' in settings) || !morphValues.includes(upper(morph))) {
+      errors.push('morph is required unless hideSettings=true, valid values are (' + morphValues.join(',') + ')');
+    }
+    if (!('bosses' in settings) || !bossesValues.includes(upper(bosses))) {
+      errors.push('bosses is required unless hideSettings=true, valid values are (' + bossesValues.join(',') + ')');
+    }
+    if (!('escape' in settings) || !escapeValues.includes(upper(escape))) {
+      errors.push('escape is required unless hideSettings=true, valid values are (' + escapeValues.join(',') + ')');
+    }
   }
-  if (!('difficulty' in settings) || !difficultyValues.includes(upper(difficulty))) {
-    errors.push('difficulty is required, valid values are (' + difficultyValues.join(',') + ')');
-  }
-  if (!('start' in settings) || !startValues.includes(upper(start))) {
-    errors.push('start is required, valid values are (' + startValues.join(',') + ')');
-  }
-  if (!('morph' in settings) || !morphValues.includes(upper(morph))) {
-    errors.push('morph is required, valid values are (' + morphValues.join(',') + ')');
-  }
-  if (!('bosses' in settings) || !bossesValues.includes(upper(bosses))) {
-    errors.push('bosses is required, valid values are (' + bossesValues.join(',') + ')');
-  }
-  if (!('escape' in settings) || !escapeValues.includes(upper(escape))) {
-    errors.push('escape is required, valid values are (' + escapeValues.join(',') + ')');
-  }
+
   if (!hidePlayers) {
     if (player1 !== undefined && player1?.trim().length === 0) {
       errors.push('player1 cannot be blank unless hidePlayers=true')
