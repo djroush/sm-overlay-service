@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { areaValues, bossesValues, difficultyValues, escapeValues, logoValues, modeValues, morphValues, startValues, themeValues } from '../../../src/models/SliderValues';
+import { areaValues, avatarValues, bossesValues, difficultyValues, escapeValues, logoValues, modeValues, morphValues, startValues, themeValues } from '../../../src/models/SliderValues';
 import path from 'path'
 import sharp from 'sharp'
 import { PlayersState } from '../../../src/models/PlayersState';
@@ -13,6 +13,7 @@ type OverlayErrorResponse = {
 type OverlaySettings = {
   theme: string,
   logo: string,
+  avatars: string,
   mode: string,
   area: string,
   difficulty: string,
@@ -40,14 +41,15 @@ export default async function handler(
 
   if (req.method === 'GET') {
     const {
-      theme, logo, mode, area, difficulty, start, morph, bosses, escape,        //settings
-      player1, player2,                                                         //players
-      hidePlayers, hideLogo, hideSettings, hideTracker, hideAvatar, hideWins    //options
+      theme, logo, avatars, mode, area, difficulty, start, morph, bosses, escape, //settings
+      player1, player2,                                                           //players
+      hidePlayers, hideLogo, hideSettings, hideTracker, hideAvatar, hideWins      //options
     } = req.query ?? {}
 
-    const settings = {
+    const settings: OverlaySettings = {
       theme: upper(theme),
       logo: upper(logo),
+      avatars: upper(avatars),
       mode: upper(mode),
       area: upper(area),
       difficulty: upper(difficulty),
@@ -89,7 +91,7 @@ export default async function handler(
   }}
 
 async function generateOverlay(settings: OverlaySettings, players: PlayersState, options: OptionsState): Promise<Buffer> {
-  const { theme, logo } = settings
+  const { theme, logo, avatars } = settings
   const { hidePlayers, hideLogo, hideSettings, hideTracker, hideAvatar, hideWins } = options
   const { player1, player2 } = players
 
@@ -97,14 +99,14 @@ async function generateOverlay(settings: OverlaySettings, players: PlayersState,
   const themeLayer = sharp(`${serverAssetPath}/overlays/${theme.toLowerCase()}.png`)
 
   const backgroundLayer = await extractLayer(themeLayer, 0, 0, 1280, 720);
-  const streamLayer = await extractLayer(themeLayer, 0, 720, 511, 390).toBuffer();
-  const nameLayer = await extractLayer(themeLayer, 511, 720, 342, 105).toBuffer();
-  const timerLayer = await extractLayer(themeLayer, 853, 720, 149, 105).toBuffer();
-  const trackerLayer = await extractLayer(themeLayer, 512, 827, 211, 202).toBuffer();
-  const avatar1Layer = await extractLayer(themeLayer, 721, 827, 162, 195).toBuffer();
-  const avatar2Layer = await extractLayer(themeLayer, 883, 827, 162, 195).toBuffer();
-  const winsLayer = await extractLayer(themeLayer, 1047, 827, 96, 193).toBuffer();
-
+  const streamLayer = await extractLayer(themeLayer, 0, 720, 512, 390).toBuffer();
+  const nameLayer = await extractLayer(themeLayer, 512, 720, 341, 107).toBuffer();
+  const timerLayer = await extractLayer(themeLayer, 853, 720, 151, 107).toBuffer();
+  const trackerLayer = await extractLayer(themeLayer, 512, 827, 210, 204).toBuffer();
+  const avatarLayer = await extractLayer(themeLayer, 722, 827, 162, 195).toBuffer();
+  const winsLayer = await extractLayer(themeLayer, 884, 827, 97, 195).toBuffer();
+  const p1AvatarLayer = await extractLayer(themeLayer, 1004, 720, 162, 195).toBuffer();
+  const p2AvatarLayer = await extractLayer(themeLayer, 1004, 915, 162, 195).toBuffer();
 
   let overlayLayers = [
     { input: streamLayer, left: 15, top: 116 },
@@ -122,8 +124,8 @@ async function generateOverlay(settings: OverlaySettings, players: PlayersState,
   }
   if (!hideAvatar) {
     overlayLayers = overlayLayers.concat([
-      { input: avatar1Layer, left: 245, top: 491 },
-      { input: avatar2Layer, left: 867, top: 491 },
+      { input: avatarLayer, left: 245, top: 491 },
+      { input: avatarLayer, left: 867, top: 491 },
     ])
   }
   if (!hideWins) {
@@ -132,6 +134,13 @@ async function generateOverlay(settings: OverlaySettings, players: PlayersState,
       { input: winsLayer, left: 753, top: 491 }
     ])
   }
+  if (!hideAvatar && avatars !== 'EMPTY' ) {
+    overlayLayers = overlayLayers.concat([
+      { input: p1AvatarLayer, left: 245, top: 491 },
+      { input: p2AvatarLayer, left: 867, top: 491 },
+    ])
+  }
+
   if (!hidePlayers) {
     const player1Layer = await generatePlayer(player1)
     const player2Layer = await generatePlayer(player2)
@@ -208,9 +217,9 @@ const generateSettings = (settings: OverlaySettings) => {
 }
 
 function validate(settings: OverlaySettings, players: PlayersState, options: OptionsState): string[] {
-  const { theme, logo, mode, area, difficulty, start, morph, bosses, escape } = settings
+  const { theme, logo, avatars, mode, area, difficulty, start, morph, bosses, escape } = settings
   const { player1, player2 } = players
-  const { hideLogo, hidePlayers, hideSettings } = options
+  const { hideLogo, hidePlayers, hideSettings, hideAvatar } = options
 
   const errors: string[] = []
 
@@ -245,6 +254,13 @@ function validate(settings: OverlaySettings, players: PlayersState, options: Opt
     if (!('escape' in settings) || !escapeValues.includes(upper(escape))) {
       errors.push('escape is required unless hideSettings=true, valid values are (' + escapeValues.join(',') + ')');
     }
+  }
+
+  if (!hideAvatar) {
+    if (!('avatars' in settings) || !avatarValues.includes(upper(avatars))) {
+      errors.push('avatars is required unless hideAvatar=true, valid values are (' + avatarValues.join(',') + ')');
+    }
+
   }
 
   if (!hidePlayers) {

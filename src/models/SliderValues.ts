@@ -5,6 +5,7 @@ export type Mark = {
 
 export const themeValues: string[] = ['MARIDIA', 'TOURIAN'];
 export const logoValues: string[] = ['DEFAULT', 'CHOOZO'];
+export const avatarValues: string[] = ['DEFAULT', 'EMPTY'];
 export const modeValues: string[] = ['FULL', 'FULL COUNTDOWN', 'MAJOR MINOR', 'CHOZO'];
 export const areaValues: string[] = ['VANILLA', 'LIGHT', 'FULL'];
 export const difficultyValues: string[] = ['BASIC', 'EASY', 'MEDIUM', 'HARD', 'HARDEST'];
