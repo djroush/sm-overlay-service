@@ -165,7 +165,7 @@ async function generateOverlay(settings: OverlaySettings, players: PlayersState,
   if (!hideSettings) {
     const settingsLayer = await generateSettings(settings)
     overlayLayers = overlayLayers.concat([
-      { input: settingsLayer, left: 534, top: settingsY }
+      { input: settingsLayer, left: 530, top: settingsY }
     ])
   }
   const overlay = backgroundLayer.composite(overlayLayers)
@@ -183,7 +183,7 @@ const extractLayer = (image: sharp.Sharp, x: number, y: number, w: number, h: nu
     })
 }
 
-const fontWeight = 600
+const fontWeight = 400
 
 const generatePlayer = (player: string, leftAlign: boolean) => {
   const xPos = leftAlign ? '10' : '50%'
@@ -213,8 +213,8 @@ const generateSettings = (settings: OverlaySettings) => {
   let svgText = '<svg width="220" height="184">\n'
   settingsText.forEach((setting, index) => {
     const height = 25 * (index + 1)
-    svgText += `\t<text x="4" font-family="Roboto,sans-serif" font-weight="${fontWeight}" font-size="16px" stroke="black" stroke-width="2" dx="-4" dy="${height}">${setting}</text>\n`
-    svgText += `\t<text x="4" font-family="Roboto,sans-serif" font-weight="${fontWeight}" font-size="16px" fill="#FDF3FB" dx="-4" dy="${height}">${setting}</text>\n`
+    svgText += `\t<text x="4" font-family="Roboto,sans-serif" font-weight="${fontWeight}" font-size="16px" stroke="black" stroke-width="2" dx="-2" dy="${height}">${setting}</text>\n`
+    svgText += `\t<text x="4" font-family="Roboto,sans-serif" font-weight="${fontWeight}" font-size="16px" fill="#FDF3FB" dx="-2" dy="${height}">${setting}</text>\n`
   })
   svgText += '</svg>\n'
   return Buffer.from(svgText)
