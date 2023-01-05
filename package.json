@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "debug": "NODE_OPTIONS='inspect'; next dev",
     "build": "next build",
     "export": "next export",
     "prod": "next build && next export",
@@ -15,7 +16,8 @@
     "nextjs-cors": "^2.1.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "sharp": "^0.31.2"
+    "sharp": "^0.31.2",
+    "typeface-roboto": "^1.1.13"
   },
   "devDependencies": {
     "@types/node": "18.11.9",

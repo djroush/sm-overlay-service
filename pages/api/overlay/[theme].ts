@@ -5,6 +5,7 @@ import sharp from 'sharp'
 import { PlayersState } from '../../../src/models/PlayersState';
 import { OptionsState } from '../../../src/models/OptionsState';
 import NextCors from 'nextjs-cors';
+import 'typeface-roboto'
 
 type OverlayErrorResponse = {
   errors: string[]
@@ -43,32 +44,36 @@ export default async function handler(
     const {
       theme, logo, avatars, mode, area, difficulty, start, morph, bosses, escape, //settings
       player1, player2,                                                           //players
-      hidePlayers, hideLogo, hideSettings, hideTracker, hideAvatar, hideWins      //options
+      hidePlayers, hideLogo, hideSettings, hideTracker, hideAvatar, hideWins,     //options
+      leftAlignPlayers, logoY, settingsY
     } = req.query ?? {}
 
     const settings: OverlaySettings = {
-      theme: upper(theme),
-      logo: upper(logo),
-      avatars: upper(avatars),
-      mode: upper(mode),
-      area: upper(area),
-      difficulty: upper(difficulty),
-      start: upper(start),
-      morph: upper(morph),
-      bosses: upper(bosses),
-      escape: upper(escape)
+      theme: upper(theme, 'CERES'),
+      logo: upper(logo, 'DEFAULT'),
+      avatars: upper(avatars, 'DEFAULT'),
+      mode: upper(mode, 'FULL'),
+      area: upper(area, 'VANILLA'),
+      difficulty: upper(difficulty, 'BASIC'),
+      start: upper(start, 'VANILLA'),
+      morph: upper(morph, 'EARLY'),
+      bosses: upper(bosses, 'VANILLA'),
+      escape: upper(escape, 'VANILLA')
     }
     const players: PlayersState = {
-      player1: normalize(player1),
-      player2: normalize(player2)
+      player1: normalize(player1, ''),
+      player2: normalize(player2, '')
     }
     const options: OptionsState = {
-      hidePlayers: lower(hidePlayers),
-      hideLogo: lower(hideLogo),
-      hideSettings: lower(hideSettings),
-      hideTracker: lower(hideTracker),
-      hideAvatar: lower(hideAvatar),
-      hideWins: lower(hideWins)
+      hidePlayers: lower(hidePlayers, false),
+      hideLogo: lower(hideLogo, false),
+      hideSettings: lower(hideSettings, false),
+      hideTracker: lower(hideTracker, false),
+      hideAvatar: lower(hideAvatar, false),
+      hideWins: lower(hideWins, false),
+      leftAlignPlayers: lower(leftAlignPlayers, false),
+      logoY: toNumber(logoY, 80),
+      settingsY: toNumber(settingsY, 165),
     }
 
     const errors = validate(settings, players, options)
@@ -92,7 +97,7 @@ export default async function handler(
 
 async function generateOverlay(settings: OverlaySettings, players: PlayersState, options: OptionsState): Promise<Buffer> {
   const { theme, logo, avatars } = settings
-  const { hidePlayers, hideLogo, hideSettings, hideTracker, hideAvatar, hideWins } = options
+  const { hidePlayers, hideLogo, hideSettings, hideTracker, hideAvatar, hideWins, leftAlignPlayers, logoY,settingsY } = options
   const { player1, player2 } = players
 
   const serverAssetPath = getServerAssetPath();
@@ -142,8 +147,8 @@ async function generateOverlay(settings: OverlaySettings, players: PlayersState,
   }
 
   if (!hidePlayers) {
-    const player1Layer = await generatePlayer(player1)
-    const player2Layer = await generatePlayer(player2)
+    const player1Layer = await generatePlayer(player1, leftAlignPlayers)
+    const player2Layer = await generatePlayer(player2, leftAlignPlayers)
 
     overlayLayers = overlayLayers.concat([
       { input: player1Layer, left: 30, top: 47 },
@@ -154,13 +159,13 @@ async function generateOverlay(settings: OverlaySettings, players: PlayersState,
     const logoLayer = await sharp(`${serverAssetPath}/logos/${logo.toLowerCase()}.png`).toBuffer()
 
     overlayLayers = overlayLayers.concat([
-      { input: logoLayer, left: 530, top: 80 }
+      { input: logoLayer, left: 530, top: logoY }
     ])
   }
   if (!hideSettings) {
     const settingsLayer = await generateSettings(settings)
     overlayLayers = overlayLayers.concat([
-      { input: settingsLayer, left: 534, top: 165 }
+      { input: settingsLayer, left: 534, top: settingsY }
     ])
   }
   const overlay = backgroundLayer.composite(overlayLayers)
@@ -178,18 +183,22 @@ const extractLayer = (image: sharp.Sharp, x: number, y: number, w: number, h: nu
     })
 }
 
-const generatePlayer = (player: string) => {
+const fontWeight = 600
+
+const generatePlayer = (player: string, leftAlign: boolean) => {
+  const xPos = leftAlign ? '10' : '50%'
+  const anchorPos = leftAlign ? 'start' : 'middle'
+
   return Buffer.from(`
     <svg width="312" height="51">
-        <text x="50%" y="50%" text-anchor="middle" font-family="roboto,sans-serif" font-size="28px" stroke="black" stroke-width="2">${player}</text>
-        <text x="50%" y="50%" text-anchor="middle" font-family="roboto,sans-serif" font-size="28px" fill="#FDF3FB" >${player}</text>
+        <text x="${xPos}" y="50%" text-anchor="${anchorPos}" font-weight="${fontWeight}" font-family="Roboto,sans-serif" font-size="29px" dx="-4" stroke="black" stroke-width="2">${player}</text>
+        <text x="${xPos}" y="50%" text-anchor="${anchorPos}" font-weight="${fontWeight}" font-family="Roboto,sans-serif" font-size="29px" dx="-4" fill="#FDF3FB" >${player}</text>
     </svg>
 `);
-
 }
 
 const generateSettings = (settings: OverlaySettings) => {
-  const { mode, area, difficulty, start, morph, bosses, escape, theme } = settings
+  const { mode, area, difficulty, start, morph, bosses, escape } = settings
 
   const settingsText = [
     `MODE - ${mode}`,
@@ -201,16 +210,11 @@ const generateSettings = (settings: OverlaySettings) => {
     `ESCAPE - ${escape}`
   ]
 
-  //Add a space so you don't write over the background on the TOURIAN theme
-  if (theme === 'TOURIAN') {
-    settingsText.splice(2, 0, '');
-  }
-
-  let svgText = '<svg width="220" height="255">\n'
+  let svgText = '<svg width="220" height="184">\n'
   settingsText.forEach((setting, index) => {
     const height = 25 * (index + 1)
-    svgText += `\t<text x="0%" font-family="roboto,sans-serif" font-weight="400" font-size="16px" stroke="black" stroke-width="2" dy="${height}">${setting}</text>\n`
-    svgText += `\t<text x="0%" font-family="roboto,sans-serif" font-weight="400" font-size="16px" fill="#FDF3FB" dy="${height}">${setting}</text>\n`
+    svgText += `\t<text x="4" font-family="Roboto,sans-serif" font-weight="${fontWeight}" font-size="16px" stroke="black" stroke-width="2" dx="-4" dy="${height}">${setting}</text>\n`
+    svgText += `\t<text x="4" font-family="Roboto,sans-serif" font-weight="${fontWeight}" font-size="16px" fill="#FDF3FB" dx="-4" dy="${height}">${setting}</text>\n`
   })
   svgText += '</svg>\n'
   return Buffer.from(svgText)
@@ -255,14 +259,12 @@ function validate(settings: OverlaySettings, players: PlayersState, options: Opt
       errors.push('escape is required unless hideSettings=true, valid values are (' + escapeValues.join(',') + ')');
     }
   }
-
   if (!hideAvatar) {
     if (!('avatars' in settings) || !avatarValues.includes(upper(avatars))) {
       errors.push('avatars is required unless hideAvatar=true, valid values are (' + avatarValues.join(',') + ')');
     }
 
   }
-
   if (!hidePlayers) {
     if (player1 !== undefined && player1?.trim().length === 0) {
       errors.push('player1 cannot be blank unless hidePlayers=true')
@@ -275,18 +277,28 @@ function validate(settings: OverlaySettings, players: PlayersState, options: Opt
   return errors;
 }
 
-function lower(input: string | string[] | undefined): boolean {
+function lower(input: string | string[] | undefined, defaultValue?: boolean): boolean {
   if (input === undefined || input === null || input === '') {
-    return false;
+    return defaultValue ?? false;
   } else if (Array.isArray(input)) {
     input = input[0]
   }
   return input?.toLowerCase() !== 'false';
 }
 
-function normalize(input: string | string[] | undefined): string {
+function toNumber(input: string | string[] | undefined, defaultValue?: number): number {
   if (input === undefined || input === null || input === '') {
-    return '';
+    return defaultValue ?? 0;
+  } else if (Array.isArray(input)) {
+    input = input[0]
+  }
+  return Number(input?.toLowerCase());
+}
+
+
+function normalize(input: string | string[] | undefined, defaultValue?: string): string {
+  if (input === undefined || input === null || input === '') {
+    return defaultValue ?? '';
   } else if (Array.isArray(input)) {
     input = input[0]
   }
@@ -294,9 +306,9 @@ function normalize(input: string | string[] | undefined): string {
 }
 
 
-function upper(input: string | string[] | undefined): string {
+function upper(input: string | string[] | undefined, defaultValue?: string): string {
   if (input === undefined) {
-    return '';
+    return defaultValue ?? '';
   } else if (Array.isArray(input)) {
     return input[0].toUpperCase();
   }
