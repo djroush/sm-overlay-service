@@ -191,8 +191,8 @@ const generatePlayer = (player: string, leftAlign: boolean) => {
 
   return Buffer.from(`
     <svg width="312" height="51">
-        <text x="${xPos}" y="50%" text-anchor="${anchorPos}" font-weight="${fontWeight}" font-family="Roboto,sans-serif" font-size="29px" dx="-4" stroke="black" stroke-width="2">${player}</text>
-        <text x="${xPos}" y="50%" text-anchor="${anchorPos}" font-weight="${fontWeight}" font-family="Roboto,sans-serif" font-size="29px" dx="-4" fill="#FDF3FB" >${player}</text>
+        <text x="${xPos}" y="50%" text-anchor="${anchorPos}" font-weight="${fontWeight}" font-family="Roboto,sans-serif" font-size="28px" dx="-4" stroke="black" stroke-width="2">${player}</text>
+        <text x="${xPos}" y="50%" text-anchor="${anchorPos}" font-weight="${fontWeight}" font-family="Roboto,sans-serif" font-size="28px" dx="-4" fill="#FDF3FB" >${player}</text>
     </svg>
 `);
 }
